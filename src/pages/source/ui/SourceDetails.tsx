@@ -71,7 +71,11 @@ const YoutubeSourceDetails = () => {
       </div>
       <div>YouTube {source.mediaType.toLowerCase()}</div>
       {source.origin && (
-        <ExternalLink href={source.origin} title="Open original source on YouTube" />
+        <ExternalLink
+          className="p-2"
+          href={source.origin}
+          tooltip="Open original source on YouTube"
+        />
       )}
     </div>
   );

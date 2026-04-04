@@ -35,7 +35,7 @@ export const SourceLoaderItem = ({
             className="size-9 shrink-0 rounded-full border border-white/10 border-dashed p-2"
           />
           <div className="min-w-0 text-sm">{item.label}</div>
-          {!isLocal && <ExternalLink href={item.origin} title="Open on YouTube" />}
+          {!isLocal && <ExternalLink href={item.origin} tooltip="Open on YouTube" />}
           <Button
             className="ml-auto shrink-0"
             iconId="trash"

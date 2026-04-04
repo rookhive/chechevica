@@ -1,44 +1,27 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import clsx from 'clsx';
-import { useRef } from 'react';
-import { twMerge } from 'tailwind-merge';
-import { Icon } from './Icon';
-import { RippleEffect } from './RippleEffect';
-import { Tooltip } from './Tooltip';
+import { Button, type Props as ButtonProps } from './Button';
 
 type Props = {
   href: string;
-  title?: string;
-  iconSize?: number;
+  tooltip?: ButtonProps['tooltip'];
+  iconSize?: ButtonProps['iconSize'];
   className?: string;
 };
 
-export const ExternalLink = ({ href, title, iconSize = 20, className }: Props) => {
-  const linkRef = useRef<HTMLSpanElement>(null);
-
+export const ExternalLink = ({ href, tooltip, iconSize = 20, className }: Props) => {
   return (
-    <>
-      <span
-        ref={linkRef}
-        className={twMerge(
-          clsx(
-            'relative inline-flex cursor-pointer items-center rounded-full p-1.25 text-blue-300 transition-colors duration-300 hover:bg-white/15',
-            className
-          )
-        )}
-        onClick={async (e) => {
-          linkRef.current?.blur();
-          e.preventDefault();
-          e.stopPropagation();
-          await openUrl(href);
-        }}
-      >
-        <RippleEffect ref={linkRef} />
-        <Icon id="external-link" size={iconSize} />
-      </span>
-      <Tooltip anchorRef={linkRef} position="top" status="info">
-        {title}
-      </Tooltip>
-    </>
+    <Button
+      className={clsx('size-auto p-1.25 text-blue-300', className)}
+      iconId="external-link"
+      iconSize={iconSize}
+      tooltip={tooltip}
+      tooltipStatus="info"
+      tooltipPosition="top"
+      onClick={async (e) => {
+        e.stopPropagation();
+        await openUrl(href);
+      }}
+    />
   );
 };

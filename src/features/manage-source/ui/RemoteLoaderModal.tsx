@@ -47,7 +47,11 @@ export const RemoteLoaderModal = ({ store }: { store: ImportStore }) => {
                 key={`${item.id}-${index}`}
                 className="flex items-center gap-2 rounded-full p-1 transition-colors duration-200 ease-linear hover:bg-white/5"
               >
-                <ExternalLink href={item.url} className="p-2" title="Open this video on YouTube" />
+                <ExternalLink
+                  href={item.url}
+                  className="p-2"
+                  tooltip="Open this video on YouTube"
+                />
                 <div className="flex min-w-0 flex-col gap-1">
                   <span className="wrap-break-word text-sm">{item.title}</span>
                 </div>

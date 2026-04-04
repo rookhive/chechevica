@@ -62,7 +62,7 @@ export const SegmentItem = ({ sourceId, segment }: Props) => {
                 iconSize={18}
                 // Currently remote sources are Youtube ones only
                 href={`${source.origin}&t=${Math.floor(segment.start)}`}
-                title="Open this segment on YouTube"
+                tooltip="Open this segment on YouTube"
               />
             </div>
           )}
