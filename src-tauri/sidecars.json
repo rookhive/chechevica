@@ -1,0 +1,14 @@
+{
+  "qdrant": {
+    "repo": "qdrant/qdrant",
+    "tag": "v1.17.1"
+  },
+  "ytDlp": {
+    "repo": "yt-dlp/yt-dlp",
+    "tag": "2026.03.17"
+  },
+  "ffmpeg": {
+    "repo": "BtbN/FFmpeg-Builds",
+    "tag": "latest"
+  }
+}

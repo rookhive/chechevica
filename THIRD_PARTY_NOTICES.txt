@@ -1,0 +1,71 @@
+THIRD-PARTY SOFTWARE NOTICES
+
+This application bundles or depends on the following third-party software. 
+These components are not licensed under the MIT license of this app. 
+Please see the respective licenses for terms of use.
+
+Note: The set of included third-party components depends on the build variant.
+
+---
+
+COMMON COMPONENTS (included in all builds):
+
+---
+
+1. FFmpeg
+
+This application bundles FFmpeg libraries (DLLs) from the LGPL build:
+- ffmpeg-master-latest-win64-lgpl.zip (BtbN builds)
+- Used as dynamic libraries; no GPL-only components included.
+
+License: GNU Lesser General Public License (LGPL) v2.1 or later
+License text: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+https://ffmpeg.org/legal.html
+
+Requirements under LGPL for redistributed binaries:
+- FFmpeg libraries are dynamically linked, not statically linked into this app.
+- Users must be able to replace or relink the FFmpeg libraries if they choose.
+- Source code and build scripts for the FFmpeg binaries used are available at: https://github.com/BtbN/FFmpeg-Builds
+
+Some codecs or filters available in the GPL build are not included in this LGPL build.
+
+---
+
+2. Qdrant
+
+Qdrant executable (qdrant.exe) is included with this application.
+
+License: Apache License 2.0
+License text: https://www.apache.org/licenses/LICENSE-2.0.html
+https://github.com/qdrant/qdrant
+
+Redistribution complies with the terms of the Apache 2.0 license.
+
+---
+
+CUDA-SPECIFIC COMPONENTS (included only in CUDA build):
+
+---
+
+3. NVIDIA CUDA and cuDNN
+
+This application includes the following NVIDIA runtime libraries:
+- cublas64_12.dll
+- cublasLt64_12.dll
+- cudart64_12.dll
+- curand64_10.dll
+- cudnn64_9.dll
+
+Licenses:
+- NVIDIA CUDA Toolkit End User License Agreement (EULA)
+  https://docs.nvidia.com/cuda/eula/
+- NVIDIA cuDNN Software License Agreement (EULA)
+  https://docs.nvidia.com/deeplearning/cudnn/backend/latest/reference/eula.html
+
+Redistribution complies with the terms of these NVIDIA licenses.  
+Reverse engineering, decompilation, or disassembly is prohibited except where allowed by law.
+
+---
+
+All above third-party components are redistributed in accordance with their respective licenses.  
+Your use of these components is subject to the original license terms.

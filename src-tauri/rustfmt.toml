@@ -1,0 +1,8 @@
+style_edition = "2024"
+
+max_width = 100
+hard_tabs = false
+tab_spaces = 2
+reorder_imports = true
+reorder_modules = true
+remove_nested_parens = true
