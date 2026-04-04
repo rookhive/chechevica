@@ -20,7 +20,7 @@ export const state = proxy<State>({
 
 export const checkForUpdates = async () => {
   try {
-    if (!['idle', 'error', 'installed'].includes(state.status)) return;
+    if (['checking', 'downloading', 'installing'].includes(state.status)) return;
 
     state.availableUpdate = null;
     state.updateSizeBytes = 0;
