@@ -273,7 +273,7 @@ impl SourceRepository for SqliteRepository {
       sqlx::query_as!(
         ArtifactRow,
         r#"
-          SELECT a.id, s.project_id, a.source_id, a.filename, a.size
+          SELECT a.id, s.project_id, a.source_id, a.filename, a.size, a.mime_type
           FROM artifacts a
           INNER JOIN sources s ON s.id = a.source_id
           WHERE a.source_id = $1
@@ -423,6 +423,7 @@ impl SourceRepository for SqliteRepository {
     source_id: &SourceId,
     filename: &str,
     size: Option<u64>,
+    mime_type: &str,
   ) -> anyhow::Result<()> {
     let source_id = source_id.to_string();
     let artifact_id = uuid::Uuid::now_v7().to_string();
@@ -430,16 +431,18 @@ impl SourceRepository for SqliteRepository {
 
     sqlx::query!(
       r#"
-        INSERT INTO artifacts (id, source_id, filename, size)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO artifacts (id, source_id, filename, size, mime_type)
+        VALUES ($1, $2, $3, $4, $5)
         ON CONFLICT(source_id) DO UPDATE SET
           filename = excluded.filename,
-          size = excluded.size
+          size = excluded.size,
+          mime_type = excluded.mime_type
       "#,
       artifact_id,
       source_id,
       filename,
       size,
+      mime_type,
     )
     .execute(&self.pool)
     .await?;

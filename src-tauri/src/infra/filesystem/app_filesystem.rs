@@ -195,6 +195,18 @@ impl Filesystem for AppFilesystem {
       Err(error) => Err(error).context(format!("Read file metadata at {:?}", path)),
     }
   }
+
+  fn get_mime_type(&self, absolute_path: &str) -> anyhow::Result<String> {
+    let path = PathBuf::from(absolute_path);
+    let kind = infer::get_from_path(&path)
+      .with_context(|| format!("Infer file type at {:?}", path))?;
+
+    Ok(
+      kind
+        .map(|file_type| file_type.mime_type().to_string())
+        .unwrap_or_else(|| "application/octet-stream".to_string()),
+    )
+  }
 }
 
 fn build_path(path: &PathBuf) -> anyhow::Result<()> {

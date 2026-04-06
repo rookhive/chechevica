@@ -25,6 +25,7 @@ export const createPlayerStore = () => {
   let mediaElement: Option<HTMLMediaElement> = null;
   let cleanupMediaListeners = noop;
   let cleanupPendingSeek = noop;
+  let pendingPlayRequest: Option<Promise<void>> = null;
 
   const getValidTime = (time: number) => {
     if (!Number.isFinite(time) || time < 0) return null;
@@ -41,9 +42,47 @@ export const createPlayerStore = () => {
     state.currentTime = validTime;
   };
 
+  const isAbortError = (error: unknown) => {
+    return error instanceof DOMException && error.name === 'AbortError';
+  };
+
+  const clearPendingPlayRequest = () => {
+    pendingPlayRequest = null;
+  };
+
+  const requestPlay = (element: HTMLMediaElement) => {
+    if (pendingPlayRequest) return pendingPlayRequest;
+
+    const playResult = element.play();
+    if (playResult === undefined) {
+      clearPendingPlayRequest();
+      return Promise.resolve();
+    }
+
+    const trackedPlayRequest = playResult
+      .catch((error) => {
+        if (isAbortError(error)) return;
+        throw error;
+      })
+      .finally(() => {
+        if (pendingPlayRequest === trackedPlayRequest) {
+          clearPendingPlayRequest();
+        }
+      });
+
+    pendingPlayRequest = trackedPlayRequest;
+
+    return pendingPlayRequest;
+  };
+
+  const requestPause = (element: HTMLMediaElement) => {
+    clearPendingPlayRequest();
+    element.pause();
+  };
+
   const releaseMediaElement = (element: Option<HTMLMediaElement>) => {
     if (!element) return;
-    element.pause();
+    requestPause(element);
     (element as HTMLMediaElement & { srcObject?: Option<MediaStream> }).srcObject = null;
   };
 
@@ -86,11 +125,13 @@ export const createPlayerStore = () => {
     },
 
     play() {
-      mediaElement?.play();
+      if (!mediaElement) return;
+      requestPlay(mediaElement);
     },
 
     pause() {
-      mediaElement?.pause();
+      if (!mediaElement) return;
+      requestPause(mediaElement);
     },
 
     setVolume(volume: number) {
@@ -154,11 +195,7 @@ export const createPlayerStore = () => {
       const clampedVolume = Math.max(0, Math.min(1, state.currentVolume));
       media.volume = clampedVolume;
       state.currentVolume = clampedVolume;
-      if (state.isPlaying) {
-        media.play();
-      } else {
-        media.pause();
-      }
+      state.isPlaying ? requestPlay(media) : requestPause(media);
     },
 
     scrollTo(time: number) {

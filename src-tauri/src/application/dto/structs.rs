@@ -156,6 +156,7 @@ pub struct ArtifactDto {
   pub source_id: String,
   pub path: String,
   pub size: Option<u64>,
+  pub mime_type: String,
 }
 
 #[derive(Serialize, Deserialize, TS)]

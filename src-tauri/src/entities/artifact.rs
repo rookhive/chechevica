@@ -15,4 +15,5 @@ pub struct Artifact {
   pub source_id: SourceId,
   pub filename: String,
   pub size: Option<u64>,
+  pub mime_type: String,
 }

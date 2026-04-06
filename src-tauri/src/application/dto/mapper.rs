@@ -114,6 +114,7 @@ impl DtoMapper {
         &artifact.filename,
       )?,
       size: artifact.size,
+      mime_type: artifact.mime_type.clone(),
     })
   }
 

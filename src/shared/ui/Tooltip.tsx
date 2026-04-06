@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import type { Option } from '../types/common';
 
 type TooltipPosition = 'top' | 'left' | 'bottom' | 'right';
-type TooltipStatus = 'regular' | 'dangerous' | 'success' | 'info';
+type TooltipStatus = 'regular' | 'dangerous' | 'success' | 'info' | 'warning';
 
 export type Props = {
   anchorRef: RefObject<Option<HTMLElement>>;
@@ -25,6 +25,8 @@ const getStatusClasses = (status: TooltipStatus) => {
       return 'bg-emerald-700/80';
     case 'dangerous':
       return 'bg-red-700/80';
+    case 'warning':
+      return 'bg-yellow-600/70';
     case 'info':
       return 'bg-sky-500/80';
     default:

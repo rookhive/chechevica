@@ -48,7 +48,7 @@ export const Thumbnail = ({ path, iconId, iconSize }: Props) => {
       {!!resolvedPath && (
         <img
           className={clsx(
-            'h-full w-full object-cover transition-opacity duration-500',
+            'h-full w-full object-contain transition-opacity duration-500',
             isLoaded ? 'opacity-100' : 'opacity-0'
           )}
           src={resolvedPath}

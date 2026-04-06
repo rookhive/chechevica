@@ -49,4 +49,5 @@ pub trait Filesystem: Send + Sync {
     source_filename: &str,
   ) -> anyhow::Result<String>;
   fn get_file_size(&self, absolute_path: &str) -> anyhow::Result<Option<u64>>;
+  fn get_mime_type(&self, absolute_path: &str) -> anyhow::Result<String>;
 }

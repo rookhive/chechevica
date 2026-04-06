@@ -95,10 +95,16 @@ impl IngestExecutor {
       .await?;
 
     let artifact_size = self.filesystem.get_file_size(&artifact_path)?;
+    let artifact_mime_type = self.filesystem.get_mime_type(&artifact_path)?;
 
     self
       .store
-      .update_artifact(&job.source_id, &artifact_filename, artifact_size)
+      .update_artifact(
+        &job.source_id,
+        &artifact_filename,
+        artifact_size,
+        &artifact_mime_type,
+      )
       .await?;
 
     Ok(())

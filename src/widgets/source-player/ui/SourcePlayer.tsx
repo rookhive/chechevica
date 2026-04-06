@@ -8,6 +8,7 @@ import { usePlayer } from '@/features/media-player';
 import { SourceThumbnail, useSourceId } from '@/features/view-source';
 import { SourcePlayerIndicator } from './SourcePlayerIndicator';
 import { SourcePlayerOverlay } from './SourcePlayerOverlay';
+import { UnsupportedTypeIndicator } from './UnsupportedTypeIndicator';
 
 export const SourcePlayer = () => {
   const sourceId = useSourceId();
@@ -39,7 +40,7 @@ export const SourcePlayer = () => {
       player.resetState();
       setHasStartedPlaying(false);
     };
-  }, [artifact?.path, player]);
+  }, [artifact?.path, artifact?.mimeType, player]);
 
   return (
     <div
@@ -67,11 +68,13 @@ export const SourcePlayer = () => {
             )}
             src={convertFileSrc(artifact.path)}
             controls={false}
+            autoPlay={false}
           />
           <SourcePlayerIndicator />
           <SourcePlayerOverlay />
         </>
       )}
+      {!!artifact && <UnsupportedTypeIndicator />}
     </div>
   );
 };

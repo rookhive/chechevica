@@ -7,4 +7,5 @@ export type Artifact = {
   sourceId: SourceId;
   path: string;
   size: number;
+  mimeType: string;
 };

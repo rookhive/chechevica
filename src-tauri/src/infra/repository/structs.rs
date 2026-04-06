@@ -160,6 +160,7 @@ pub struct ArtifactRow {
   pub source_id: String,
   pub filename: String,
   pub size: Option<i64>,
+  pub mime_type: String,
 }
 
 impl TryFrom<ArtifactRow> for Artifact {
@@ -172,6 +173,7 @@ impl TryFrom<ArtifactRow> for Artifact {
       source_id: row.source_id.parse::<SourceId>()?,
       filename: row.filename,
       size: row.size.map(|value| value as u64),
+      mime_type: row.mime_type,
     })
   }
 }

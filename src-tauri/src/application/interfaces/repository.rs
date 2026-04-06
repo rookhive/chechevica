@@ -82,6 +82,7 @@ pub trait SourceRepository: Send + Sync {
     source_id: &SourceId,
     filename: &str,
     size: Option<u64>,
+    mime_type: &str,
   ) -> anyhow::Result<()>;
   async fn fetch_segments(&self, source_id: &SourceId) -> anyhow::Result<Vec<Segment>>;
   async fn update_segments(
