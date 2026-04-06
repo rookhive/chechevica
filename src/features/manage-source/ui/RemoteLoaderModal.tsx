@@ -1,4 +1,3 @@
-import type { SubmitEvent } from 'react';
 import { useSnapshot } from 'valtio';
 import { Button } from '@/shared/ui/Button';
 import { ExternalLink } from '@/shared/ui/ExternalLink';
@@ -9,17 +8,14 @@ import type { ImportStore } from '../model/importStore';
 export const RemoteLoaderModal = ({ store }: { store: ImportStore }) => {
   const { remoteCandidates, isRemoteLoaderOpen, remoteLink, isRemoteLoading, remoteError } =
     useSnapshot(store.state);
+  const hasCandidates = remoteCandidates.length > 0;
   const canFetch = !!remoteLink.trim() && !isRemoteLoading;
-  const canAdd = remoteCandidates.length > 0 && !isRemoteLoading;
+  const canAdd = hasCandidates && !isRemoteLoading;
 
-  const handleFetch = async () => {
-    await store.fetchRemoteCandidates();
-  };
-
-  const handleSubmit = (e: SubmitEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!canFetch) return;
-    void handleFetch();
+    await store.fetchRemoteCandidates();
+    store.setRemoteLink('');
   };
 
   const handleAddVideos = () => {
@@ -30,17 +26,30 @@ export const RemoteLoaderModal = ({ store }: { store: ImportStore }) => {
 
   return (
     <Modal isOpen={isRemoteLoaderOpen} title="Add remote videos" onClose={store.closeRemoteLoader}>
-      <form className="flex w-140 flex-col gap-3" onSubmit={handleSubmit}>
+      <div className="flex w-140 flex-col gap-3">
         <Input
           autoFocus
           iconId="youtube"
           value={remoteLink}
           placeholder="Enter YouTube link (video, channel, or playlist)"
+          isDisabled={isRemoteLoading}
           isLoading={isRemoteLoading}
+          rightSlot={
+            <Button
+              className="-mr-1 ml-2"
+              status={remoteLink ? 'success' : 'regular'}
+              isUppercased
+              isDisabled={!remoteLink}
+              isLoading={isRemoteLoading}
+              onClick={handleSubmit}
+            >
+              Add
+            </Button>
+          }
           onChange={store.setRemoteLink}
         />
         {!!remoteError && <div className="text-red-400 text-sm">{remoteError}</div>}
-        {!!remoteCandidates.length && (
+        {hasCandidates && (
           <div className="scrollable -mx-3 flex max-h-80 flex-col gap-2 pr-1">
             {remoteCandidates.map((item, index) => (
               <div
@@ -67,14 +76,19 @@ export const RemoteLoaderModal = ({ store }: { store: ImportStore }) => {
             ))}
           </div>
         )}
-        {!!remoteCandidates.length && (
+        {hasCandidates && (
           <div className="flex items-center justify-end">
-            <Button isDisabled={!canAdd} status="success" isUppercased onClick={handleAddVideos}>
+            <Button
+              status={canAdd ? 'success' : 'regular'}
+              isDisabled={!canAdd}
+              isUppercased
+              onClick={handleAddVideos}
+            >
               Add these videos
             </Button>
           </div>
         )}
-      </form>
+      </div>
     </Modal>
   );
 };
