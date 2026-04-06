@@ -115,7 +115,7 @@ impl jobs::DownloadEngine for DownloadEngine {
     url: &str,
     _params_json: &str,
   ) -> anyhow::Result<DownloadMetadata> {
-    let _ = self.run_lock.lock().await;
+    let _run_lock = self.run_lock.lock().await;
 
     let url = url.trim();
     if url.is_empty() {
@@ -146,7 +146,7 @@ impl jobs::DownloadEngine for DownloadEngine {
     _params_json: &str,
     destination_directory: &str,
   ) -> anyhow::Result<ProducedFile> {
-    let _ = self.run_lock.lock().await;
+    let _run_lock = self.run_lock.lock().await;
 
     let url = url.trim();
     if url.is_empty() {
@@ -168,7 +168,7 @@ impl jobs::DownloadEngine for DownloadEngine {
     params_json: &str,
     events: JobEventSender,
   ) -> anyhow::Result<ProducedFile> {
-    let _ = self.run_lock.lock().await;
+    let _run_lock = self.run_lock.lock().await;
 
     let params = self.parse_params_json(params_json)?;
 

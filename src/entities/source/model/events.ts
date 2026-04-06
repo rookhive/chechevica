@@ -16,8 +16,10 @@ const applySourceUpdate = (sourceDto: SourceDto) => {
   appendProjectSourceId(source.projectId, source.id);
 };
 
-export const initRuntimeListeners = async () => {
-  await listen<SourceDto>('source:update', (event) => applySourceUpdate(event.payload));
-  await listen<JobDto>('job:new', (event) => hydrateJob(fromJobDto(event.payload)));
-  await listen<JobDto>('job:update', (event) => applyJobUpdate(fromJobDto(event.payload)));
+export const initRuntimeListeners = () => {
+  Promise.all([
+    listen<SourceDto>('source:update', (event) => applySourceUpdate(event.payload)),
+    listen<JobDto>('job:new', (event) => hydrateJob(fromJobDto(event.payload))),
+    listen<JobDto>('job:update', (event) => applyJobUpdate(fromJobDto(event.payload))),
+  ]);
 };

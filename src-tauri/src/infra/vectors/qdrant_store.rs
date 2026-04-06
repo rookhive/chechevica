@@ -239,11 +239,15 @@ fn source_id_condition(source_id: &SourceId) -> Condition {
 fn build_qdrant_filters(filters: &SemanticSearchFilters) -> Option<Filter> {
   let mut must = Vec::new();
 
-  if let Some(project_ids) = &filters.project_ids && !project_ids.is_empty() {
+  if let Some(project_ids) = &filters.project_ids
+    && !project_ids.is_empty()
+  {
     must.push(any_match_condition("project_id", project_ids));
   }
 
-  if let Some(source_ids) = &filters.source_ids && !source_ids.is_empty() {
+  if let Some(source_ids) = &filters.source_ids
+    && !source_ids.is_empty()
+  {
     must.push(any_match_condition("source_id", source_ids));
   }
 

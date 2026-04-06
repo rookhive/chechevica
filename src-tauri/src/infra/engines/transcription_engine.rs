@@ -248,7 +248,7 @@ impl jobs::TranscriptionEngine for TranscriptionEngine {
     params_json: &str,
     events: JobEventSender,
   ) -> anyhow::Result<Vec<NewSegment>> {
-    let _ = self.run_lock.lock().await;
+    let _run_lock = self.run_lock.lock().await;
     let media_path = media_path.trim();
     if media_path.is_empty() {
       anyhow::bail!("Media path is empty");

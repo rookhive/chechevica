@@ -63,9 +63,9 @@ impl TranscriptionExecutor {
       &artifact.filename,
     )?;
 
-    let _ = self.gpu_lock.lock().await;
-
     self.embedding_service.unload_model().await?;
+
+    let _gpu_lock = self.gpu_lock.lock().await;
 
     let segments = self
       .engine

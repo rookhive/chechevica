@@ -146,7 +146,7 @@ impl MistralrsService {
     );
     let started_at = Instant::now();
     let outputs = model
-      .generate_embeddings(request)
+      .generate_embeddings_with_model(request, Some(EMBEDDING_MODEL))
       .await
       .context("Generate embeddings")?;
 
@@ -176,6 +176,27 @@ impl MistralrsService {
       EmbeddingInputKind::Query => format!("Instruct: {QUERY_RETRIEVAL_TASK}\nQuery:{input}"),
       EmbeddingInputKind::Document => input.to_string(),
     }
+  }
+
+  async fn shutdown_model_runner_locked(&self) -> anyhow::Result<bool> {
+    let Some(model) = self.state.model.read().await.clone() else {
+      return Ok(false);
+    };
+
+    let was_loaded = model
+      .is_model_loaded(EMBEDDING_MODEL)
+      .context("Check embedding model loaded status")?;
+
+    if was_loaded {
+      model
+        .unload_model(EMBEDDING_MODEL)
+        .context("Unload embedding model")?;
+    }
+
+    let runner = self.state.model.write().await.take();
+    drop(runner);
+
+    Ok(was_loaded)
   }
 }
 
@@ -211,7 +232,9 @@ impl EmbeddingService for MistralrsService {
 
   fn schedule_unload(&self) {
     let generation = self.state.unload_generation.fetch_add(1, Ordering::Relaxed) + 1;
-    let state = Arc::clone(&self.state);
+    let service = Self {
+      state: Arc::clone(&self.state),
+    };
 
     let token = CancellationToken::new();
     if let Ok(mut guard) = self.state.unload_cancel.try_lock() {
@@ -227,16 +250,23 @@ impl EmbeddingService for MistralrsService {
         _ = token.cancelled() => return,
       }
 
-      if state.unload_generation.load(Ordering::Relaxed) != generation {
+      if service.state.unload_generation.load(Ordering::Relaxed) != generation {
         return;
       }
 
-      let unloaded = state.model.write().await.take().is_some();
-      if unloaded && cfg!(debug_assertions) {
-        println!(
-          "Unloaded embedding model {EMBEDDING_MODEL} after {:.0}s idle.",
-          MODEL_IDLE_TIMEOUT.as_secs_f32()
-        );
+      let _gpu_guard = service.state.gpu_lock.lock().await;
+
+      match service.shutdown_model_runner_locked().await {
+        Ok(true) if cfg!(debug_assertions) => {
+          println!(
+            "Unloaded embedding model {EMBEDDING_MODEL} after {:.0}s idle.",
+            MODEL_IDLE_TIMEOUT.as_secs_f32()
+          );
+        }
+        Ok(_) => {}
+        Err(error) => {
+          eprintln!("Failed to unload embedding model after idle timeout: {error:#}");
+        }
       }
     });
   }
@@ -247,7 +277,10 @@ impl EmbeddingService for MistralrsService {
     if let Some(token) = guard.take() {
       token.cancel();
     }
-    let unloaded = self.state.model.write().await.take().is_some();
+    drop(guard);
+
+    let _gpu_guard = self.state.gpu_lock.lock().await;
+    let unloaded = self.shutdown_model_runner_locked().await?;
 
     if unloaded && cfg!(debug_assertions) {
       println!("Unloaded embedding model {EMBEDDING_MODEL} on explicit shutdown.");
