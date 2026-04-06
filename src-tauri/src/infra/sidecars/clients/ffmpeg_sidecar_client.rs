@@ -57,6 +57,9 @@ impl FfmpegSidecarClient {
         "error".to_string(),
         "-ss".to_string(),
         seek_seconds.to_string(),
+        "-noaccurate_seek".to_string(),
+        "-skip_frame".to_string(),
+        "nokey".to_string(),
         "-i".to_string(),
         media_path.to_string(),
         "-vframes".to_string(),
@@ -64,7 +67,7 @@ impl FfmpegSidecarClient {
         "-q:v".to_string(),
         "1".to_string(),
         "-vf".to_string(),
-        "scale=min(iw\\,1280):-2:flags=lanczos".to_string(),
+        "scale=min(iw\\,1280):-2:flags=bilinear".to_string(),
         "-y".to_string(),
         output.absolute_path.clone(),
       ])
