@@ -12,12 +12,6 @@ use crate::{
   },
 };
 
-const MAX_SEGMENT_MERGE_GAP_SECONDS: f64 = 0.85;
-const MAX_MERGED_SEGMENT_DURATION_SECONDS: f64 = 18.0;
-const MIN_COMPLETE_SEGMENT_WORDS: usize = 6;
-const MIN_COMPLETE_SEGMENT_CHARS: usize = 28;
-const MAX_MERGED_SEGMENT_WORDS: usize = 48;
-const MAX_MERGED_SEGMENT_CHARS: usize = 400;
 const MAX_NUMERIC_ARTIFACT_DIGITS: usize = 2;
 
 pub struct FasterWhisperSidecarClient {
@@ -255,22 +249,7 @@ fn normalize_segments(segments: Vec<NewSegment>) -> Vec<NewSegment> {
       .then(left.end.total_cmp(&right.end))
   });
 
-  let mut merged = Vec::with_capacity(normalized.len());
-  for segment in normalized {
-    let Some(current) = merged.last_mut() else {
-      merged.push(segment);
-      continue;
-    };
-
-    if should_merge_segments(current, &segment) {
-      merge_segments(current, segment);
-      continue;
-    }
-
-    merged.push(segment);
-  }
-
-  merged
+  normalized
 }
 
 fn normalize_segment(mut segment: NewSegment) -> Option<NewSegment> {
@@ -286,56 +265,6 @@ fn normalize_segment_text(text: &str) -> String {
   text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-fn should_merge_segments(current: &NewSegment, next: &NewSegment) -> bool {
-  let gap = next.start - current.end;
-  if gap > MAX_SEGMENT_MERGE_GAP_SECONDS {
-    return false;
-  }
-
-  if next.end - current.start > MAX_MERGED_SEGMENT_DURATION_SECONDS {
-    return false;
-  }
-
-  let current_stats = analyze_segment_text(&current.text);
-  if current_stats.word_count >= MAX_MERGED_SEGMENT_WORDS
-    || current_stats.char_count >= MAX_MERGED_SEGMENT_CHARS
-  {
-    return false;
-  }
-
-  if !current_stats.ends_sentence {
-    return true;
-  }
-
-  current_stats.word_count < MIN_COMPLETE_SEGMENT_WORDS
-    || current_stats.char_count < MIN_COMPLETE_SEGMENT_CHARS
-}
-
-fn merge_segments(current: &mut NewSegment, next: NewSegment) {
-  current.end = current.end.max(next.end);
-  current.text = join_segment_text(&current.text, &next.text);
-}
-
-fn join_segment_text(left: &str, right: &str) -> String {
-  if left.is_empty() {
-    return right.to_string();
-  }
-
-  if right.is_empty() {
-    return left.to_string();
-  }
-
-  let Some(first_right_char) = right.chars().next() else {
-    return left.to_string();
-  };
-
-  if matches!(first_right_char, ',' | '.' | '!' | '?' | ':' | ';') {
-    format!("{left}{right}")
-  } else {
-    format!("{left} {right}")
-  }
-}
-
 fn is_obvious_artifact_text(text: &str) -> bool {
   let stats = analyze_segment_text(text);
   if stats.alnum_count == 0 {
@@ -348,7 +277,6 @@ fn is_obvious_artifact_text(text: &str) -> bool {
 fn analyze_segment_text(text: &str) -> SegmentTextStats {
   let trimmed = text.trim();
   let word_count = trimmed.split_whitespace().count();
-  let char_count = trimmed.chars().filter(|char| !char.is_whitespace()).count();
   let alnum_count = trimmed
     .chars()
     .filter(|char| char.is_alphanumeric())
@@ -363,32 +291,17 @@ fn analyze_segment_text(text: &str) -> SegmentTextStats {
 
   SegmentTextStats {
     word_count,
-    char_count,
     alnum_count,
     digit_count,
     numeric_only,
-    ends_sentence: ends_with_sentence_punctuation(trimmed),
   }
-}
-
-fn ends_with_sentence_punctuation(text: &str) -> bool {
-  let trimmed = text.trim_end_matches(|char: char| {
-    char.is_whitespace() || matches!(char, '"' | '\'' | ')' | ']' | '}')
-  });
-
-  trimmed.ends_with('.')
-    || trimmed.ends_with('!')
-    || trimmed.ends_with('?')
-    || trimmed.ends_with('…')
 }
 
 struct SegmentTextStats {
   word_count: usize,
-  char_count: usize,
   alnum_count: usize,
   digit_count: usize,
   numeric_only: bool,
-  ends_sentence: bool,
 }
 
 #[derive(Deserialize)]
