@@ -5,7 +5,7 @@ import type { ContextMenuItem } from '@/shared/ui/ContextMenu';
 import { dialog } from '@/shared/ui/Dialog';
 import { modal } from '@/shared/ui/Modal';
 import { CreateProjectForm } from './CreateProjectForm';
-import { DeleteProjectMessage } from './DeleteProjectMessage';
+import { DeleteProjectConfirmation, DeleteProjectMessage } from './DeleteProjectMessage';
 import { EditProjectForm } from './EditProjectForm';
 
 export const useUpdateProjectMenuItem = (projectId: ProjectId) => {
@@ -42,7 +42,16 @@ export const useDeleteProjectMenuItem = (projectId: ProjectId) => {
           cancelLabel: 'Cancel',
           confirmButtonStatus: 'dangerous',
           children: <DeleteProjectMessage projectId={projectId} />,
-          onConfirm: () => deleteProject({ projectId }),
+          onConfirm: () => {
+            dialog.open({
+              title: 'Confirm deletion',
+              confirmLabel: 'Delete permanently',
+              cancelLabel: 'Cancel',
+              confirmButtonStatus: 'dangerous',
+              children: <DeleteProjectConfirmation />,
+              onConfirm: () => deleteProject({ projectId }),
+            });
+          },
         });
       },
     }),
