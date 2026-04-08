@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { mutate } from 'swr';
 import { useParams, useSearchParams } from 'wouter';
 import { useSourceSegments } from '@/entities/segment';
-import { type SourceId, useFetchSource, useSourceSnapshot } from '@/entities/source';
+import {
+  type Source,
+  type SourceId,
+  useFetchSource,
+  useOptionalSourceSnapshot,
+  useSourceSnapshot,
+} from '@/entities/source';
 import { useTabMetainfo } from '@/features/manage-tabs';
 import { createPlayerStore, PlayerProvider } from '@/features/media-player';
 import { createSegmentsStore, SegmentsProvider } from '@/features/view-segments';
@@ -25,22 +31,35 @@ export const SourcePage = () => {
 
 export const SourceWrapper = ({ sourceId }: { sourceId: SourceId }) => {
   useFetchSource(sourceId);
-  const [searchParams] = useSearchParams();
-  const { segments } = useSourceSegments({ sourceId });
 
-  const source = useSourceSnapshot(sourceId);
+  const source = useOptionalSourceSnapshot(sourceId);
+
+  if (!source)
+    return (
+      <StatusMessage status="warning" iconId="warning">
+        There's no such source
+      </StatusMessage>
+    );
+
+  return <ResolvedSourceWrapper source={source} />;
+};
+
+const ResolvedSourceWrapper = ({ source }: { source: Source }) => {
+  const [searchParams] = useSearchParams();
+  const { segments } = useSourceSegments({ sourceId: source.id });
+
   const [playerStore] = useState(() => createPlayerStore());
   const segmentsStore = useMemo(() => createSegmentsStore(segments), [segments]);
 
   // biome-ignore lint: it's fine
   useEffect(() => {
-    mutate(['source-artifact', sourceId]);
-  }, [sourceId, source.transcribeJobId]);
+    mutate(['source-artifact', source.id]);
+  }, [source.id, source.transcribeJobId]);
 
   // biome-ignore lint: it's fine
   useEffect(() => {
-    mutate(['source-segments', sourceId]);
-  }, [sourceId, source.embedJobId]);
+    mutate(['source-segments', source.id]);
+  }, [source.id, source.embedJobId]);
 
   useEffect(() => {
     const segmentParam = searchParams.get('segment');
@@ -56,15 +75,8 @@ export const SourceWrapper = ({ sourceId }: { sourceId: SourceId }) => {
     playerStore.scrollTo(segment.start);
   }, [playerStore, segmentsStore, searchParams]);
 
-  if (!source)
-    return (
-      <StatusMessage status="warning" iconId="warning">
-        There's no such source
-      </StatusMessage>
-    );
-
   return (
-    <SourceProvider value={sourceId}>
+    <SourceProvider value={source.id}>
       <PlayerProvider value={playerStore}>
         <SegmentsProvider value={segmentsStore}>
           <SourceContent />

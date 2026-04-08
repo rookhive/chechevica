@@ -42,14 +42,13 @@ pub async fn get_source(
   db: Repository<'_>,
   mapper: DtoMapper<'_>,
   source_id: SourceId,
-) -> CommandResult<SourceWithJobsDto> {
-  let source = db
-    .fetch_source(&source_id)
-    .await?
-    .context("Source not found")?;
+) -> CommandResult<Option<SourceWithJobsDto>> {
+  let Some(source) = db.fetch_source(&source_id).await? else {
+    return Ok(None);
+  };
   let jobs = db.fetch_source_jobs(&source_id).await?;
 
-  map_source_with_jobs(&mapper, &source, &jobs)
+  Ok(Some(map_source_with_jobs(&mapper, &source, &jobs)?))
 }
 
 #[tauri::command]

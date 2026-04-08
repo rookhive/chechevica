@@ -3,7 +3,7 @@ import type { Patch } from '@/shared/contract/Patch';
 import type { ProjectDto } from '@/shared/contract/ProjectDto';
 import type { ProjectInfoDto } from '@/shared/contract/ProjectInfoDto';
 import type { Option } from '@/shared/types/common';
-import type { ProjectId } from '../model/types';
+import type { Project, ProjectId } from '../model/types';
 import { fromProjectDto, fromProjectsInfoDto } from './mappers';
 
 // Read all projects
@@ -25,7 +25,9 @@ export function createProject(payload: CreateProjectPayload) {
 // Read project
 export type GetProjectPayload = { projectId: ProjectId };
 export function getProject(payload: GetProjectPayload) {
-  return sendMessage<ProjectDto>('get_project', payload).then(fromProjectDto);
+  return sendMessage<Option<ProjectDto>>('get_project', payload).then(
+    (dto): Option<Project> => (dto ? fromProjectDto(dto) : null)
+  );
 }
 
 // Update project

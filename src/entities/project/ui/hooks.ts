@@ -1,4 +1,5 @@
 import useSWR, { mutate } from 'swr';
+import { deleteProjectSourcesFromStore } from '@/entities/source/model/store';
 import {
   type CreateProjectPayload,
   createProject,
@@ -37,7 +38,15 @@ export function useUpdateProject() {
 export function useDeleteProject() {
   return async (payload: DeleteProjectPayload) => {
     await deleteProject(payload);
+    const deletedSourceIds = deleteProjectSourcesFromStore(payload.projectId);
     mutate('projects');
-    mutate(['project', payload.projectId]);
+    mutate('processing-sources');
+    mutate(['project', payload.projectId], null, false);
+    mutate(['sources', payload.projectId], undefined, false);
+    for (const sourceId of deletedSourceIds) {
+      mutate(['source', sourceId], null, false);
+      mutate(['source-artifact', sourceId], undefined, false);
+      mutate(['source-segments', sourceId], undefined, false);
+    }
   };
 }

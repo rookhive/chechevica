@@ -32,6 +32,14 @@ const createProjectSourceIdsProxy = () => proxy<SourceId[]>([]);
 const createProjectSourceSortProxy = () =>
   proxy<ProjectSourceSort>({ field: 'createdAt', direction: 'desc' });
 
+const deleteSourceJobsFromStore = (sourceId: SourceId) => {
+  for (const job of Object.values(store.jobsById)) {
+    if (job.sourceId === sourceId) {
+      deleteJobFromStore(job.id);
+    }
+  }
+};
+
 const removeSourceId = (sourceIds: SourceId[], sourceId: SourceId) => {
   const index = sourceIds.indexOf(sourceId);
   if (index >= 0) {
@@ -111,12 +119,28 @@ export const appendProjectSourceId = (projectId: ProjectId, sourceId: SourceId) 
 
 export const deleteSourceFromStore = (sourceId: SourceId) => {
   const source = store.sourcesById[sourceId];
+  deleteSourceJobsFromStore(sourceId);
   if (!source) return;
   delete store.sourcesById[sourceId];
   removeSourceId(store.processingSourceIds, sourceId);
   const projectSources = store.projectSourceIds[source.projectId];
   if (!projectSources) return;
   removeSourceId(projectSources, sourceId);
+};
+
+export const deleteProjectSourcesFromStore = (projectId: ProjectId) => {
+  const sourceIds = Object.values(store.sourcesById)
+    .filter((source) => source.projectId === projectId)
+    .map((source) => source.id);
+
+  for (const sourceId of sourceIds) {
+    deleteSourceFromStore(sourceId);
+  }
+
+  delete store.projectSourceIds[projectId];
+  delete store.projectSourceSorts[projectId];
+
+  return sourceIds;
 };
 
 export const deleteJobFromStore = (jobId: JobId) => {

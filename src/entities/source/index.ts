@@ -35,6 +35,7 @@ export {
   useFetchSource,
   useFetchSources,
   useJobSnapshot,
+  useOptionalSourceSnapshot,
   useProcessingSourceIdsSnapshot,
   useProcessingSourcesSummary,
   useReprocessSource,

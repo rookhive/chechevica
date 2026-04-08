@@ -57,7 +57,13 @@ export function useFetchSource(sourceId: SourceId) {
   const { data, ...props } = useSWR(['source', sourceId], () => getSource({ sourceId }), {
     revalidateOnFocus: false,
     suspense: true,
-    onSuccess: ({ source, jobs }) => {
+    onSuccess: (result) => {
+      if (!result) {
+        deleteSourceFromStore(sourceId);
+        return;
+      }
+
+      const { source, jobs } = result;
       hydrateSource(source);
       hydrateJobs(jobs);
     },
@@ -80,9 +86,16 @@ export function useFetchProcessingSources() {
 
 export function useDeleteSource() {
   return useCallback(async (payload: DeleteSourcePayload) => {
+    const source = store.sourcesById[payload.sourceId];
     await deleteSource(payload);
     deleteSourceFromStore(payload.sourceId);
     mutate('processing-sources');
+    mutate(['source', payload.sourceId], null, false);
+    mutate(['source-artifact', payload.sourceId], undefined, false);
+    mutate(['source-segments', payload.sourceId], undefined, false);
+    if (source) {
+      mutate(['sources', source.projectId]);
+    }
   }, []);
 }
 
@@ -178,6 +191,11 @@ export function useProcessingSourcesSummary() {
 
 export function useSourceSnapshot(sourceId: SourceId) {
   return useSnapshot(getSourceProxy(sourceId));
+}
+
+export function useOptionalSourceSnapshot(sourceId: SourceId) {
+  const sourcesById = useSnapshot(store.sourcesById);
+  return sourcesById[sourceId];
 }
 
 export function useJobSnapshot(jobId: JobId) {

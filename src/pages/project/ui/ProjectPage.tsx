@@ -5,7 +5,8 @@ import { StatusMessage } from '@/shared/ui/StatusMessage';
 import { Sources } from './Sources';
 
 export const ProjectPage = () => {
-  const { data: project } = useProject(useParams<{ projectId: ProjectId }>());
+  const { projectId } = useParams<{ projectId: ProjectId }>();
+  const { data: project } = useProject({ projectId });
 
   if (!project)
     return (

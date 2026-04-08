@@ -5,6 +5,7 @@ import type { RemoteSourceMetadata } from '@/shared/contract/RemoteSourceMetadat
 import type { SourceDto } from '@/shared/contract/SourceDto';
 import type { SourceWithJobsDto } from '@/shared/contract/SourceWithJobsDto';
 import type { StepParameters } from '@/shared/contract/StepParameters';
+import type { Option } from '@/shared/types/common';
 import type { JobKind, SourceId, SourceType } from '../model/types';
 import { fromJobDto, fromSourceDto, fromSourceWithJobsDto } from './mappers';
 
@@ -17,7 +18,9 @@ export function getProjectSources(payload: GetProjectSourcesPayload) {
 // Read a single source by id
 export type GetSourcePayload = { sourceId: SourceId };
 export function getSource(payload: GetSourcePayload) {
-  return sendMessage<SourceWithJobsDto>('get_source', payload).then(fromSourceWithJobsDto);
+  return sendMessage<Option<SourceWithJobsDto>>('get_source', payload).then((dto) =>
+    dto ? fromSourceWithJobsDto(dto) : null
+  );
 }
 
 // Read all sources that have not succeeded yet and their jobs
