@@ -1,4 +1,6 @@
 import argparse
+import gc
+import io
 import json
 import os
 import sys
@@ -37,12 +39,15 @@ os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS", "1")
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 
+import av
 import ctranslate2
+import numpy as np
 from faster_whisper import BatchedInferencePipeline, WhisperModel
 
 
 COMPUTE_TYPES = ("int8", "float16", "float32")
 DEVICE_CHOICES = ("cuda", "cpu")
+TARGET_SAMPLING_RATE = 16000
 JOB_KEYS = {
     "path",
     "device",
@@ -229,6 +234,103 @@ def load_pipeline(config: PipelineConfig) -> BatchedInferencePipeline:
     return pipeline
 
 
+def write_resampled_frames(
+    raw_buffer: io.BytesIO,
+    resampler: av.audio.resampler.AudioResampler,
+    frame: av.audio.frame.AudioFrame | None,
+) -> tuple[np.dtype[Any] | None, int]:
+    dtype: np.dtype[Any] | None = None
+    written_samples = 0
+
+    for output_frame in resampler.resample(frame):
+        array = np.asarray(output_frame.to_ndarray()).reshape(-1)
+        dtype = array.dtype
+        raw_buffer.write(array.tobytes())
+        written_samples += int(array.shape[0])
+
+    return dtype, written_samples
+
+
+def append_silence(raw_buffer: io.BytesIO, sample_count: int) -> None:
+    if sample_count <= 0:
+        return
+
+    raw_buffer.write(np.zeros(sample_count, dtype=np.int16).tobytes())
+
+
+def timestamp_to_samples(timestamp: int | None, time_base: Any | None) -> int | None:
+    if timestamp is None or time_base is None:
+        return None
+
+    return max(0, int(round(float(timestamp * time_base) * TARGET_SAMPLING_RATE)))
+
+
+def decode_audio_resiliently(path: str) -> np.ndarray:
+    resampler = av.audio.resampler.AudioResampler(
+        format="s16",
+        layout="mono",
+        rate=TARGET_SAMPLING_RATE,
+    )
+    raw_buffer = io.BytesIO()
+    dtype: np.dtype[Any] | None = None
+    written_samples = 0
+
+    with av.open(path, mode="r", metadata_errors="ignore") as container:
+        if not container.streams.audio:
+            raise ValueError("Input media has no audio stream")
+
+        stream = container.streams.audio[0]
+
+        for packet in container.demux(stream):
+            try:
+                frames = packet.decode()
+            except av.error.InvalidDataError:
+                packet_start = timestamp_to_samples(
+                    packet.pts if packet.pts is not None else packet.dts,
+                    packet.time_base or stream.time_base,
+                )
+                packet_duration = timestamp_to_samples(
+                    packet.duration,
+                    packet.time_base or stream.time_base,
+                )
+
+                if packet_start is not None and packet_duration is not None:
+                    gap_end = packet_start + packet_duration
+                    if gap_end > written_samples:
+                        append_silence(raw_buffer, gap_end - written_samples)
+                        written_samples = gap_end
+
+                continue
+
+            for frame in frames:
+                frame_start = timestamp_to_samples(frame.pts, frame.time_base)
+
+                if frame_start is not None and frame_start > written_samples:
+                    append_silence(raw_buffer, frame_start - written_samples)
+                    written_samples = frame_start
+
+                frame_dtype, frame_samples = write_resampled_frames(
+                    raw_buffer,
+                    resampler,
+                    frame,
+                )
+                dtype = frame_dtype or dtype
+                written_samples += frame_samples
+
+        flush_dtype, flush_samples = write_resampled_frames(raw_buffer, resampler, None)
+        dtype = flush_dtype or dtype
+        written_samples += flush_samples
+
+    del resampler
+    gc.collect()
+
+    if dtype is None:
+        raise ValueError("Decoded audio is empty")
+
+    audio = np.frombuffer(raw_buffer.getbuffer(), dtype=dtype)
+    return audio.astype(np.float32) / 32768.0
+
+
 def emit_segment(start: float, end: float, total_duration: float, text: str) -> None:
     progress = min(100, int((end / total_duration) * 100))
     emit(
@@ -271,16 +373,24 @@ def emit_segments(segments: Iterable[Any], duration: float | None) -> None:
 def transcribe_job(pipeline: BatchedInferencePipeline, job: ResolvedJob) -> None:
     emit({"event": "transcribing_started"})
     started_at = time.perf_counter()
+    audio = decode_audio_resiliently(job.path)
+
+    vad_params = {
+        "threshold": 0.3,
+    }
 
     segments, _info = pipeline.transcribe(
-        job.path,
+        audio,
         batch_size=job.batch_size,
         beam_size=job.beam_size,
         language=job.language,
+        temperature=0.0,
         word_timestamps=False,
         chunk_length=30,
+        multilingual=True,
         vad_filter=True,
-        vad_parameters={"min_silence_duration_ms": 500},
+        vad_parameters=vad_params,
+        condition_on_previous_text=False,
     )
 
     emit_segments(segments, job.duration)
