@@ -38,7 +38,7 @@ export const JobDetails = ({ jobId }: Props) => {
           <div
             className={clsx(
               'flex size-4.5 shrink-0 items-center justify-center rounded-full',
-              isSucceeded ? 'text-white' : isQueued ? 'text-white/40' : textColor,
+              isSucceeded ? 'text-white' : isQueued || isCancelling ? 'text-white/40' : textColor,
               isSucceeded ? backgroundColor : isFailed ? 'bg-red-600/30' : 'bg-white/10'
             )}
           >

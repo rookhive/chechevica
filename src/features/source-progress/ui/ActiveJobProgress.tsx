@@ -58,7 +58,7 @@ const JobProgress = ({ jobId }: { jobId: JobId }) => {
       <div
         className={clsx(
           'flex items-center',
-          isQueued ? 'opacity-35' : getTextColorByJobKind(job.kind)
+          isQueued || isCancelling ? 'opacity-35' : getTextColorByJobKind(job.kind)
         )}
       >
         {(isRunning || isQueued || isCancelling) && (
