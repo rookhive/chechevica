@@ -38,10 +38,36 @@ export const isStepDisabled = (
   return visibleSteps.indexOf(step) < visibleSteps.indexOf(selectedStartStep);
 };
 
-export const getKindLabel = (kind: JobParamKind) => ('integer' in kind ? 'integer' : 'select');
+export const getKindLabel = (kind: JobParamKind) => {
+  if ('integer' in kind) return 'integer';
+  if ('boolean' in kind) return 'boolean';
+  return 'select';
+};
+
+const normalizeCheckboxValue = (value: unknown, fallbackValue = false) => {
+  if (typeof value === 'boolean') return value;
+
+  if (typeof value === 'string') {
+    const normalizedValue = value.trim().toLowerCase();
+    if (normalizedValue === 'true') return true;
+    if (normalizedValue === 'false') return false;
+  }
+
+  return fallbackValue;
+};
+
+const normalizeParamValue = (param: JobParam, value: unknown, fallbackValue: unknown) => {
+  if ('boolean' in param.kind) {
+    return normalizeCheckboxValue(value, normalizeCheckboxValue(fallbackValue));
+  }
+
+  return value;
+};
 
 export const buildStepDefaults = (params: JobParam[]): StepParamValues =>
-  Object.fromEntries(params.map((param) => [param.key, param.default]));
+  Object.fromEntries(
+    params.map((param) => [param.key, normalizeParamValue(param, param.default, param.default)])
+  );
 
 export const buildDefaultsByStep = (stepParameters: StepParameters): SourceParamsByStep => ({
   ingest: buildStepDefaults(stepParameters.ingest),
@@ -73,7 +99,11 @@ export const normalizeSourceParams = (
     return Object.fromEntries(
       stepParameters[step].map((param) => [
         param.key,
-        param.key in stepRawParams ? stepRawParams[param.key] : fallbackDefaults[step][param.key],
+        normalizeParamValue(
+          param,
+          param.key in stepRawParams ? stepRawParams[param.key] : fallbackDefaults[step][param.key],
+          fallbackDefaults[step][param.key]
+        ),
       ])
     );
   };

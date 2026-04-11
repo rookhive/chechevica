@@ -13,6 +13,10 @@ use crate::{
 };
 
 const MAX_NUMERIC_ARTIFACT_DIGITS: usize = 2;
+const MIN_SEGMENT_SYMBOLS: usize = 100;
+const TARGET_SEGMENT_SYMBOLS: usize = 500;
+const MAX_SEGMENT_SYMBOLS: usize = 1024;
+const MAX_SEGMENT_MERGE_GAP_SECONDS: f64 = 1.5;
 
 pub struct FasterWhisperSidecarClient {
   runtime: Arc<SidecarRuntime>,
@@ -29,6 +33,7 @@ pub struct TranscriptionRequest {
   pub compute_type: String,
   pub batch_size: u32,
   pub beam_size: u32,
+  pub vad_filter: bool,
   pub duration: Option<f64>,
 }
 
@@ -249,7 +254,77 @@ fn normalize_segments(segments: Vec<NewSegment>) -> Vec<NewSegment> {
       .then(left.end.total_cmp(&right.end))
   });
 
-  normalized
+  combine_short_segments(normalized)
+}
+
+fn combine_short_segments(segments: Vec<NewSegment>) -> Vec<NewSegment> {
+  let mut merged = Vec::with_capacity(segments.len());
+  let mut current_segment: Option<NewSegment> = None;
+
+  for next_segment in segments {
+    let Some(current) = current_segment.take() else {
+      current_segment = Some(next_segment);
+      continue;
+    };
+
+    if should_merge_segments(&current, &next_segment) {
+      current_segment = Some(merge_segments(current, next_segment));
+    } else {
+      merged.push(current);
+      current_segment = Some(next_segment);
+    }
+  }
+
+  if let Some(current) = current_segment {
+    merged.push(current);
+  }
+
+  merged
+}
+
+fn should_merge_segments(current: &NewSegment, next: &NewSegment) -> bool {
+  let current_symbols = segment_symbol_count(&current.text);
+  let next_symbols = segment_symbol_count(&next.text);
+  let merged_symbols = merged_segment_symbol_count(&current.text, &next.text);
+  if merged_symbols > MAX_SEGMENT_SYMBOLS {
+    return false;
+  }
+
+  if current_symbols < MIN_SEGMENT_SYMBOLS {
+    return true;
+  }
+
+  let gap_seconds = (next.start - current.end).max(0.0);
+  if gap_seconds > MAX_SEGMENT_MERGE_GAP_SECONDS && next_symbols >= MIN_SEGMENT_SYMBOLS {
+    return false;
+  }
+
+  if merged_symbols <= TARGET_SEGMENT_SYMBOLS {
+    return true;
+  }
+
+  next_symbols < MIN_SEGMENT_SYMBOLS
+}
+
+fn merge_segments(left: NewSegment, right: NewSegment) -> NewSegment {
+  NewSegment {
+    start: left.start.min(right.start),
+    end: left.end.max(right.end),
+    text: merge_segment_text(&left.text, &right.text),
+  }
+}
+
+fn merge_segment_text(left: &str, right: &str) -> String {
+  normalize_segment_text(&format!("{left} {right}"))
+}
+
+fn segment_symbol_count(text: &str) -> usize {
+  text.chars().count()
+}
+
+fn merged_segment_symbol_count(left: &str, right: &str) -> usize {
+  let separator = usize::from(!left.is_empty() && !right.is_empty());
+  segment_symbol_count(left) + separator + segment_symbol_count(right)
 }
 
 fn normalize_segment(mut segment: NewSegment) -> Option<NewSegment> {

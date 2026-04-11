@@ -43,8 +43,8 @@ export const SearchControls = () => {
           {
             id: 'keyword',
             iconId: 'keyword',
-            label: 'Keyword',
-            description: 'Keyword search (Alt+K)',
+            label: 'Full-text',
+            description: 'Full-text search (Alt+K)',
             onClick: () => {
               setSearchMode('keyword');
               search();

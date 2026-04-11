@@ -1,8 +1,11 @@
 import clsx from 'clsx';
+import { AnimatePresence, motion } from 'motion/react';
 import { useRef } from 'react';
 import type { JobParam } from '@/shared/contract/JobParam';
+import { Icon } from '@/shared/ui/Icon';
 import { Input } from '@/shared/ui/Input';
 import { Select, type SelectItem } from '@/shared/ui/Select';
+import { Button } from './Button';
 import { Tooltip } from './Tooltip';
 
 type Props = {
@@ -36,6 +39,18 @@ export const SourceParameterControl = ({
     );
   }
 
+  if ('boolean' in kind) {
+    return (
+      <CheckboxParameter
+        label={param.label}
+        value={value}
+        isDisabled={isDisabled}
+        accentColorClassName={accentColorClassName}
+        onChange={onChange}
+      />
+    );
+  }
+
   const items: SelectItem[] = kind.select.options.map((option) => ({
     id: option,
     label: option,
@@ -58,6 +73,54 @@ export const SourceParameterControl = ({
         </div>
       )}
     />
+  );
+};
+
+const CheckboxParameter = ({
+  label,
+  value,
+  isDisabled,
+  accentColorClassName,
+  onChange,
+}: {
+  label: string;
+  value: unknown;
+  isDisabled?: boolean;
+  accentColorClassName?: string;
+  onChange: (value: boolean) => void;
+}) => {
+  const isChecked = !!value;
+
+  return (
+    <Button className="px-3" isDisabled={isDisabled} onClick={() => onChange(!isChecked)}>
+      <div className="flex select-none items-center gap-1">
+        {!!accentColorClassName && (
+          <span className={clsx('mr-1 size-3 shrink-0 rounded-full', accentColorClassName)} />
+        )}
+        <span className="pr-1.5 text-white/60 text-xs">{label}:</span>
+        <span
+          className={clsx(
+            'inline-flex size-5 items-center justify-center rounded-full ring-1 transition-all duration-300',
+            isChecked
+              ? 'bg-emerald-500/20 text-emerald-300 ring-emerald-500/70'
+              : 'bg-white/5 text-white/30 ring-white/15'
+          )}
+        >
+          <AnimatePresence mode="wait">
+            {isChecked && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.5 }}
+                transition={{ duration: 0.15, ease: 'linear' }}
+              >
+                <Icon id="check" size={13} />
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </span>
+      </div>
+    </Button>
   );
 };
 

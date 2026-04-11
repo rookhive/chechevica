@@ -1,17 +1,22 @@
 import clsx from 'clsx';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type SubmitEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { twMerge } from 'tailwind-merge';
 import { useSnapshot } from 'valtio';
+import { useProcessingSourcesSummary } from '@/entities/source';
 import { Input } from '@/shared/ui/Input';
+import { Tooltip } from '@/shared/ui/Tooltip';
 import { useKeyDown } from '@/shared/ui/useKeyDown';
 import { useSearchStore } from './hooks';
 import { SearchControls } from './SearchControls';
 
 export const SearchInput = () => {
+  const { processingCount } = useProcessingSourcesSummary();
   const { state, search, setSearchString, setIsInputFocused, setIsOverlayOpen } = useSearchStore();
   const { searchString, searchPlaceholder, isSearching, isInputFocused } = useSnapshot(state);
   const [value, setValue] = useState(searchString);
+  const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isWorking = processingCount > 0;
 
   const handleFocus = () => {
     setIsInputFocused(true);
@@ -28,6 +33,11 @@ export const SearchInput = () => {
   const handleChange = (value: string) => {
     setValue(value);
     setSearchString(value);
+  };
+
+  const handleSubmit = (e: SubmitEvent) => {
+    e.preventDefault();
+    search();
   };
 
   useEffect(() => {
@@ -58,6 +68,7 @@ export const SearchInput = () => {
 
   return (
     <form
+      ref={formRef}
       className={twMerge(
         clsx(
           'relative z-20 flex w-full min-w-0 items-center rounded-full bg-emerald-700/20 text-sm transition-all duration-350 ease-out will-change-contents hover:bg-emerald-700/30',
@@ -66,10 +77,7 @@ export const SearchInput = () => {
           isSearching && 'pointer-events-none'
         )
       )}
-      onSubmit={(e) => {
-        e.preventDefault();
-        search();
-      }}
+      onSubmit={isSearching || isWorking ? undefined : handleSubmit}
     >
       <Input
         inputRef={inputRef}
@@ -77,7 +85,7 @@ export const SearchInput = () => {
         iconId="search"
         value={value}
         placeholder={searchPlaceholder}
-        isDisabled={isSearching}
+        isDisabled={isSearching || isWorking}
         isLoading={isSearching}
         rippleDuration={1.5}
         rightSlot={<SearchControls />}
@@ -85,6 +93,9 @@ export const SearchInput = () => {
         onFocus={handleFocus}
         onBlur={handleBlur}
       />
+      <Tooltip anchorRef={formRef} position="bottom" status="info">
+        {isWorking && 'Search is unavailable while sources are processing'}
+      </Tooltip>
     </form>
   );
 };

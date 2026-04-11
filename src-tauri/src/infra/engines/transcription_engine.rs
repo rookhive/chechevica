@@ -23,6 +23,7 @@ struct TranscriptionParams {
   model: String,
   language: String,
   batch_size: String,
+  vad_filter: Option<bool>,
   #[cfg(feature = "cuda")]
   compute_type: String,
   #[cfg(feature = "cuda")]
@@ -196,6 +197,12 @@ impl jobs::JobEngine for TranscriptionEngine {
         kind: JobParamKind::Integer { min: 1, max: 64 },
         default: Some("8".into()),
       },
+      JobParam {
+        key: "vad_filter".to_string(),
+        label: "VAD Filter".to_string(),
+        kind: JobParamKind::Boolean {},
+        default: Some("true".into()),
+      },
     ];
 
     #[cfg(feature = "cuda")]
@@ -280,6 +287,7 @@ impl TranscriptionParams {
     let model = self.model.trim();
     let language = self.language.trim();
     let batch_size: u32 = self.batch_size.trim().parse()?;
+    let vad_filter = self.vad_filter.unwrap_or(true);
 
     #[cfg(feature = "cpu")]
     let (device, compute_type, beam_size) = ("cpu", "int8", 1);
@@ -298,6 +306,7 @@ impl TranscriptionParams {
       compute_type: compute_type.to_string(),
       batch_size,
       beam_size,
+      vad_filter,
       duration: Some(duration.max(0.0)),
     })
   }

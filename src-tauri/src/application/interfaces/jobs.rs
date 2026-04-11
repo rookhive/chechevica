@@ -46,6 +46,7 @@ pub struct JobParam {
 pub enum JobParamKind {
   Select { options: Vec<String> },
   Integer { min: u32, max: u32 },
+  Boolean {},
 }
 
 #[async_trait]

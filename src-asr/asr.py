@@ -56,6 +56,7 @@ JOB_KEYS = {
     "batch_size",
     "beam_size",
     "language",
+    "vad_filter",
     "duration",
 }
 
@@ -76,6 +77,7 @@ class JobRequest:
     batch_size: int | None = None
     beam_size: int | None = None
     language: str | None = None
+    vad_filter: bool | None = None
     duration: float | None = None
 
 
@@ -86,6 +88,7 @@ class ResolvedJob:
     batch_size: int
     beam_size: int
     language: str | None
+    vad_filter: bool
     duration: float | None
 
 
@@ -160,6 +163,15 @@ def expect_optional_int(job: dict[str, Any], key: str) -> int | None:
     return value
 
 
+def expect_optional_bool(job: dict[str, Any], key: str) -> bool | None:
+    value = job.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, bool):
+        raise ValueError(f'"{key}" must be a boolean')
+    return value
+
+
 def normalize_job(job: dict[str, Any]) -> JobRequest:
     unknown_keys = sorted(set(job) - JOB_KEYS)
     if unknown_keys:
@@ -178,6 +190,7 @@ def normalize_job(job: dict[str, Any]) -> JobRequest:
         batch_size=expect_optional_int(job, "batch_size"),
         beam_size=expect_optional_int(job, "beam_size"),
         language=expect_optional_str(job, "language"),
+        vad_filter=expect_optional_bool(job, "vad_filter"),
         duration=coerce_positive_float(job.get("duration")),
     )
 
@@ -209,6 +222,7 @@ def resolve_job(args: argparse.Namespace, job: JobRequest) -> ResolvedJob:
         batch_size=job.batch_size or args.batch_size,
         beam_size=job.beam_size or args.beam_size,
         language=resolve_language(job.language or args.language),
+        vad_filter=True if job.vad_filter is None else job.vad_filter,
         duration=job.duration,
     )
 
@@ -370,26 +384,41 @@ def emit_segments(segments: Iterable[Any], duration: float | None) -> None:
         )
 
 
+def build_clip_timestamps(
+    audio: np.ndarray, chunk_length: int
+) -> list[dict[str, float]]:
+    total_duration = audio.shape[0] / TARGET_SAMPLING_RATE
+    clip_timestamps: list[dict[str, float]] = []
+
+    start = 0.0
+    while start < total_duration:
+        end = min(total_duration, start + chunk_length)
+        clip_timestamps.append({"start": start, "end": end})
+        start = end
+
+    return clip_timestamps
+
+
 def transcribe_job(pipeline: BatchedInferencePipeline, job: ResolvedJob) -> None:
     emit({"event": "transcribing_started"})
     started_at = time.perf_counter()
     audio = decode_audio_resiliently(job.path)
+    chunk_length = 30
+    clip_timestamps = None
 
-    vad_params = {
-        "threshold": 0.3,
-    }
+    if not job.vad_filter:
+        clip_timestamps = build_clip_timestamps(audio, chunk_length)
 
     segments, _info = pipeline.transcribe(
         audio,
         batch_size=job.batch_size,
         beam_size=job.beam_size,
         language=job.language,
-        temperature=0.0,
-        word_timestamps=False,
-        chunk_length=30,
-        multilingual=True,
-        vad_filter=True,
-        vad_parameters=vad_params,
+        temperature=[0.0],
+        word_timestamps=True,
+        chunk_length=chunk_length,
+        clip_timestamps=clip_timestamps,
+        vad_filter=job.vad_filter,
         condition_on_previous_text=False,
     )
 
