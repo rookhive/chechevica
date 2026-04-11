@@ -109,10 +109,11 @@ const CheckboxParameter = ({
           <AnimatePresence mode="wait">
             {isChecked && (
               <motion.span
+                className="inline-flex items-center justify-center"
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.5 }}
-                transition={{ duration: 0.15, ease: 'linear' }}
+                exit={{ opacity: 0, scale: 0 }}
+                transition={{ duration: 0.2, ease: 'linear' }}
               >
                 <Icon id="check" size={13} />
               </motion.span>
