@@ -84,14 +84,12 @@ impl jobs::JobEngine for DownloadEngine {
       label: "Quality".to_string(),
       kind: JobParamKind::Select {
         options: vec![
-          "worst".into(),
           "144p".into(),
           "240p".into(),
           "360p".into(),
           "480p".into(),
           "720p".into(),
           "1080p".into(),
-          "best".into(),
         ],
       },
       default: Some("360p".into()),

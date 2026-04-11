@@ -408,6 +408,8 @@ fn rate_limit_args() -> Vec<String> {
     "24".to_string(),
     "--retry-sleep".to_string(),
     "exp=1:20".to_string(),
+    "--limit-rate".to_string(),
+    "3M".to_string(),
   ]
 }
 
@@ -445,11 +447,7 @@ fn build_download_args(
       "mp3".to_string(),
     ]);
 
-    if quality == "worst" {
-      args.extend(["-S".to_string(), "+abr".to_string()]);
-    } else {
-      args.extend(["-S".to_string(), "abr".to_string()]);
-    }
+    args.extend(["-S".to_string(), "abr".to_string()]);
   } else {
     args.extend(["-f".to_string(), build_video_format_selector(quality)]);
   }
@@ -459,18 +457,14 @@ fn build_download_args(
 }
 
 fn build_video_format_selector(quality: &str) -> String {
-  match quality {
-    "worst" => "worstvideo+worstaudio/worst".to_string(),
-    "best" => "bestvideo+bestaudio/best".to_string(),
-    _ => parse_target_height(quality)
-      .map(|target_height| {
-        format!(
-          "bestvideo[height<={th}]+bestaudio/best[height<={th}]/best",
-          th = target_height
-        )
-      })
-      .unwrap_or_else(|| "bestvideo+bestaudio/best".to_string()),
-  }
+  parse_target_height(quality)
+    .map(|target_height| {
+      format!(
+        "bestvideo[height<={th}]+bestaudio/best[height<={th}]/best",
+        th = target_height
+      )
+    })
+    .unwrap_or_else(|| "bestvideo+bestaudio/best".to_string())
 }
 
 fn parse_target_height(quality: &str) -> Option<u32> {
