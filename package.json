@@ -25,17 +25,17 @@
     "@tanstack/react-virtual": "^3.13.23",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-clipboard-manager": "~2.3.2",
-    "@tauri-apps/plugin-dialog": "~2.6.0",
+    "@tauri-apps/plugin-dialog": "~2.7.0",
     "@tauri-apps/plugin-opener": "~2.5.3",
     "@tauri-apps/plugin-process": "~2.3.1",
     "@tauri-apps/plugin-shell": "~2.3.5",
-    "@tauri-apps/plugin-updater": "~2.10.0",
+    "@tauri-apps/plugin-updater": "~2.10.1",
     "@tauri-apps/plugin-window-state": "~2.4.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "motion": "^12.38.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
     "react-error-boundary": "^6.1.1",
     "swr": "^2.4.1",
     "tailwind-merge": "^3.5.0",
@@ -43,7 +43,7 @@
     "wouter": "^3.9.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.10",
+    "@biomejs/biome": "2.4.11",
     "@rolldown/plugin-babel": "^0.2.2",
     "@tailwindcss/vite": "^4.2.2",
     "@tauri-apps/cli": "^2.10.1",
@@ -58,7 +58,7 @@
     "react-devtools": "^7.0.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
-    "vite": "^8.0.3"
+    "vite": "^8.0.8"
   },
   "engines": {
     "node": ">=24.14.0"
