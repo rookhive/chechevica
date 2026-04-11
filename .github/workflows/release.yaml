@@ -38,8 +38,6 @@ jobs:
 
       - name: Clean
         run: |
-          $releaseDir = 'src-tauri/target/release'
-
           if (Test-Path 'src-tauri/db.sqlite') {
             Remove-Item 'src-tauri/db.sqlite' -Force -ErrorAction SilentlyContinue
           }
@@ -48,9 +46,10 @@ jobs:
             Get-ChildItem 'src-tauri/dll/*.dll' -Force -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
           }
 
-          if (Test-Path $releaseDir) {
-            Get-ChildItem $releaseDir -File -Recurse -Force -ErrorAction SilentlyContinue |
-              Remove-Item -Force -ErrorAction SilentlyContinue
+          foreach ($path in @('src-tauri/bin', 'src-tauri/target/release')) {
+            if (Test-Path $path) {
+              Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue
+            }
           }
 
       - name: Generate DB for sqlx compile-time checks
