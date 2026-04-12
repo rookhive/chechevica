@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::Context;
 use async_trait::async_trait;
 use tantivy::collector::TopDocs;
-use tantivy::query::{BooleanQuery, Occur, Query, QueryParser, TermQuery};
+use tantivy::query::{BooleanQuery, Occur, Query, TermQuery};
 use tantivy::schema::{
   FAST, Field, IndexRecordOption, STORED, STRING, Schema, TEXT, TextFieldIndexing, TextOptions,
   Value,
@@ -175,6 +175,37 @@ impl TantivyService {
 
     Ok(Some(Box::new(BooleanQuery::new(term_queries))))
   }
+
+  fn build_text_term_query(&self, phrase: &str) -> anyhow::Result<Option<Box<dyn Query>>> {
+    let mut analyzer = self
+      .index
+      .tokenizer_for_field(self.text_field)
+      .context("Get text tokenizer")?;
+
+    let mut term_queries: Vec<(Occur, Box<dyn Query>)> = Vec::new();
+
+    let mut token_stream = analyzer.token_stream(phrase);
+    token_stream.process(&mut |token| {
+      let term = Term::from_field_text(self.text_field, &token.text);
+      term_queries.push((
+        Occur::Must,
+        Box::new(TermQuery::new(
+          term,
+          IndexRecordOption::WithFreqsAndPositions,
+        )) as Box<dyn Query>,
+      ));
+    });
+
+    if term_queries.is_empty() {
+      return Ok(None);
+    }
+
+    if term_queries.len() == 1 {
+      return Ok(Some(term_queries.into_iter().next().unwrap().1));
+    }
+
+    Ok(Some(Box::new(BooleanQuery::new(term_queries))))
+  }
 }
 
 #[async_trait]
@@ -182,15 +213,19 @@ impl SearchService for TantivyService {
   async fn search(&self, request: &KeywordSearchRequest) -> anyhow::Result<Vec<KeywordSearchHit>> {
     let searcher = self.reader.searcher();
 
-    let text_query_parser = QueryParser::for_index(&self.index, vec![self.text_field]);
-    let exact_query = text_query_parser.parse_query(&request.query)?;
-
+    let exact_query = self.build_text_term_query(&request.query)?;
     let ngram_query = self.build_ngram_term_query(&request.query)?;
 
     let mut clauses: Vec<(Occur, Box<dyn Query>)> = Vec::new();
-    clauses.push((Occur::Should, exact_query));
+    if let Some(exact_query) = exact_query {
+      clauses.push((Occur::Should, exact_query));
+    }
     if let Some(ngram_query) = ngram_query {
       clauses.push((Occur::Should, ngram_query));
+    }
+
+    if clauses.is_empty() {
+      return Ok(vec![]);
     }
 
     let mut query: Box<dyn Query> = if clauses.len() == 1 {
