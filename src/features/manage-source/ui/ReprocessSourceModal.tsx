@@ -157,7 +157,7 @@ export const ReprocessSourceModalContent = ({ sourceId, onComplete }: Props) => 
     <div className="flex min-h-0 w-162.5 flex-col gap-4">
       <div className="flex flex-col gap-1 px-1">
         <div className="text-sm">Choose where to restart the pipeline</div>
-        <div className="text-white/60 text-xs">
+        <div className="text-sm text-white/60">
           Selected step and all subsequent steps will be re-run with the parameters you set
         </div>
       </div>
@@ -264,29 +264,26 @@ const ReprocessSummary = ({
   steps: StepKey[];
 }) => {
   return (
-    <div className="flex w-full max-w-120 flex-col gap-3 text-xs">
+    <div className="flex w-120 max-w-full flex-col gap-3 text-sm">
       <div className="flex items-start gap-3">
         <div className="rounded-full bg-amber-500/10 p-3">
           <Icon id="warning" size={32} className="shrink-0 text-amber-500" />
         </div>
-        <div className="flex min-w-0 flex-col gap-2">
-          <div className="wrap-break-word text-sm leading-tight">
-            Source «<b>{title}</b>» will be reprocessed
-          </div>
-          <div className="text-white/80">
-            The following steps will be run with selected parameters:
-          </div>
-          <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span>The source will be reprocessed:</span>
+          <span className="wrap-break-word opacity-80">«{title}»</span>
+          <span className="mb-2">The following steps will be re-run:</span>
+          <div className="flex flex-col gap-1.5 pt-1">
             {Object.entries(params).map(([step, stepParams]) => {
               if (!steps.includes(step as StepKey)) return null;
 
               return (
                 <div key={step} className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2">
                     <StepIndicator step={step as StepKey} />
                     <span>{getLabelByJobKind(step as StepKey)}</span>
                   </div>
-                  <div className="flex flex-wrap gap-1 py-1">
+                  <div className="flex flex-wrap gap-1 py-1 text-xs">
                     {step === 'download' && <Chip label="Media Type" value={mediaType} />}
                     {Object.entries(stepParams).map(([key, value]) => (
                       <Chip
