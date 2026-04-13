@@ -35,8 +35,8 @@ https://github.com/user-attachments/assets/c6c830f4-f542-43cf-a172-868b7991d8ce
 
 Download the `.msi` installer from the [Releases](https://github.com/rookhive/chechevica/releases/latest) page:
 
-- 💻 `Chechevica_0.1.6_x64_en-US.msi` - regular version of the app **without** GPU-acceleration
-- 💻⚡️ `Chechevica_CUDA_0.1.6_x64_en-US.msi` - CUDA-accelerated version of the app, highly recommended, up to 20-30x faster than the regular version. Requires an NVIDIA GPU
+- 💻 `Chechevica_0.1.11_x64_en-US.msi` - regular version of the app **without** GPU-acceleration
+- 💻⚡️ `Chechevica_CUDA_0.1.11_x64_en-US.msi` - CUDA-accelerated version of the app, highly recommended, up to 20-30x faster than the regular version. Requires an NVIDIA GPU
 
 
 ## 🧹 Uninstalling
