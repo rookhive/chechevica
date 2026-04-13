@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Context;
+use anyhow::anyhow;
 use async_trait::async_trait;
 use serde::Deserialize;
 
@@ -63,7 +64,7 @@ impl jobs::EmbeddingEngine for EmbeddingEngine {
       let _ = progress_events.send(JobEvent::Progress { percent });
     };
 
-    let embeddings = self
+    let embeddings = match self
       .embedding_service
       .generate_embeddings(
         &segments,
@@ -71,10 +72,22 @@ impl jobs::EmbeddingEngine for EmbeddingEngine {
         &mut on_ready,
         &mut on_progress,
       )
-      .await?;
+      .await
+    {
+      Ok(embeddings) => embeddings,
+      Err(error) => {
+        let _ = self.embedding_service.unload_model().await;
+        return Err(error);
+      }
+    };
 
     if embeddings.len() != total {
-      anyhow::bail!("Expected {} embeddings, got {}", total, embeddings.len())
+      let _ = self.embedding_service.unload_model().await;
+      return Err(anyhow!(
+        "Expected {} embeddings, got {}",
+        total,
+        embeddings.len()
+      ));
     }
 
     self.embedding_service.schedule_unload();

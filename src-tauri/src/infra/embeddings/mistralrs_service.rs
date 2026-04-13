@@ -6,7 +6,9 @@ use std::{
 };
 
 use anyhow::Context;
-use mistralrs::{Device, EmbeddingModelBuilder, EmbeddingRequest, Model, ModelDType};
+use mistralrs::{
+  Device, DeviceMapSetting, EmbeddingModelBuilder, EmbeddingRequest, Model, ModelDType,
+};
 use tokio::{
   sync::{Mutex, RwLock},
   time::{Duration, sleep},
@@ -75,6 +77,7 @@ impl MistralrsService {
         .with_dtype(dtype)
         .with_logging()
         .with_device(device.clone())
+        .with_device_mapping(DeviceMapSetting::dummy())
         .build()
     };
 
@@ -97,12 +100,9 @@ impl MistralrsService {
     }
 
     #[cfg(feature = "cuda")]
-    let model = match build_model(ModelDType::BF16).await {
-      Ok(model) => model,
-      Err(_) => build_model(ModelDType::F16)
-        .await
-        .context("Build embedding model")?,
-    };
+    let model = build_model(ModelDType::BF16)
+      .await
+      .context("Build embedding model")?;
 
     #[cfg(feature = "cpu")]
     let model = build_model().await.context("Build embedding model")?;
@@ -264,9 +264,7 @@ impl EmbeddingService for MistralrsService {
           );
         }
         Ok(_) => {}
-        Err(error) => {
-          eprintln!("Failed to unload embedding model after idle timeout: {error:#}");
-        }
+        Err(_) => {}
       }
     });
   }

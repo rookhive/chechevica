@@ -59,6 +59,10 @@ impl FastembedService {
     }
   }
 
+  fn reset_poisoned_model() -> Option<TextEmbedding> {
+    None
+  }
+
   async fn generate_embeddings_inner(
     &self,
     inputs: &[String],
@@ -81,10 +85,14 @@ impl FastembedService {
     let batch_size = formatted_inputs.len();
 
     task::spawn_blocking(move || -> anyhow::Result<()> {
-      let mut guard = state_for_load
-        .model
-        .lock()
-        .map_err(|_| anyhow::anyhow!("Lock FastEmbed model"))?;
+      let mut guard = match state_for_load.model.lock() {
+        Ok(guard) => guard,
+        Err(error) => {
+          let mut guard = error.into_inner();
+          *guard = Self::reset_poisoned_model();
+          guard
+        }
+      };
 
       if guard.is_none() {
         let started_at = Instant::now();
@@ -117,10 +125,14 @@ impl FastembedService {
     on_ready();
 
     task::spawn_blocking(move || {
-      let mut guard = state_for_embed
-        .model
-        .lock()
-        .map_err(|_| anyhow::anyhow!("Lock FastEmbed model"))?;
+      let mut guard = match state_for_embed.model.lock() {
+        Ok(guard) => guard,
+        Err(error) => {
+          let mut guard = error.into_inner();
+          *guard = Self::reset_poisoned_model();
+          guard
+        }
+      };
 
       let model = guard.as_mut().context("Missing FastEmbed model")?;
       let started_at = Instant::now();
@@ -208,7 +220,10 @@ impl EmbeddingService for FastembedService {
 
       let unloaded = match state.model.lock() {
         Ok(mut guard) => guard.take().is_some(),
-        Err(_) => false,
+        Err(error) => {
+          let mut guard = error.into_inner();
+          guard.take().is_some()
+        }
       };
 
       if unloaded && cfg!(debug_assertions) {
@@ -227,13 +242,13 @@ impl EmbeddingService for FastembedService {
     {
       token.cancel();
     }
-    let unloaded = self
-      .state
-      .model
-      .lock()
-      .map_err(|_| anyhow::anyhow!("Lock FastEmbed model"))?
-      .take()
-      .is_some();
+    let unloaded = match self.state.model.lock() {
+      Ok(mut guard) => guard.take().is_some(),
+      Err(error) => {
+        let mut guard = error.into_inner();
+        guard.take().is_some()
+      }
+    };
 
     if unloaded && cfg!(debug_assertions) {
       println!("Unloaded embedding model {EMBEDDING_MODEL_NAME} on explicit shutdown.");
