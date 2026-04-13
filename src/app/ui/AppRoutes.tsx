@@ -1,5 +1,5 @@
 import { AnimatePresence } from 'motion/react';
-import { Suspense, useLayoutEffect } from 'react';
+import { Suspense, startTransition, useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Route, Switch, useLocation, useSearchParams } from 'wouter';
 import { useTab } from '@/features/manage-tabs';
@@ -22,9 +22,9 @@ export const AppRoutes = () => {
   return (
     <ErrorBoundary fallback={<FatalErrorMessage />} resetKeys={[location, searchKey]}>
       <Suspense fallback={<Loader />}>
-        <TabLoadingSync location={location} searchKey={searchKey} />
         <AnimatePresence mode="wait">
           <Animated key={location} className="h-full min-h-0" duration={0.25} ease="linear">
+            <TabLoadingSync />
             <Switch location={location}>
               <Route path="/new" component={NewTabPage} />
               <Route path="/settings" component={SettingsPage} />
@@ -47,8 +47,10 @@ const FatalErrorMessage = () => {
   setIcon('error');
   setTitle('Error..');
 
-  useLayoutEffect(() => {
-    setIsLoading(false);
+  useEffect(() => {
+    startTransition(() => {
+      setIsLoading(false);
+    });
   }, [setIsLoading]);
 
   return (
@@ -58,13 +60,14 @@ const FatalErrorMessage = () => {
   );
 };
 
-const TabLoadingSync = ({ location, searchKey }: { location: string; searchKey: string }) => {
+const TabLoadingSync = () => {
   const { setIsLoading } = useTab();
 
-  // biome-ignore lint: it's fine
-  useLayoutEffect(() => {
-    setIsLoading(false);
-  }, [setIsLoading, location, searchKey]);
+  useEffect(() => {
+    startTransition(() => {
+      setIsLoading(false);
+    });
+  }, [setIsLoading]);
 
   return null;
 };
@@ -72,8 +75,10 @@ const TabLoadingSync = ({ location, searchKey }: { location: string; searchKey: 
 const Loader = () => {
   const { setIsLoading } = useTab();
 
-  useLayoutEffect(() => {
-    setIsLoading(true);
+  useEffect(() => {
+    startTransition(() => {
+      setIsLoading(true);
+    });
   }, [setIsLoading]);
 
   return <Spinner className="text-emerald-700" size={28} absoluteCentered />;

@@ -36,6 +36,7 @@
         "useAriaPropsSupportedByRole": "off"
       },
       "suspicious": {
+        "useIterableCallbackReturn": "off",
         "noAssignInExpressions": "off",
         "noArrayIndexKey": "off"
       }

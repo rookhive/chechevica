@@ -10,8 +10,16 @@ import { AppViewport } from './AppViewport';
 
 export const App = () => {
   useEffect(() => {
+    let isMounted = true;
+    let disposer = () => {};
+
     checkForUpdates();
-    initRuntimeListeners();
+    initRuntimeListeners().then((unlisten) => isMounted && (disposer = unlisten));
+
+    return () => {
+      isMounted = false;
+      disposer();
+    };
   }, []);
 
   return (

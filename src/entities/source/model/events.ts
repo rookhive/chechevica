@@ -17,9 +17,9 @@ const applySourceUpdate = (sourceDto: SourceDto) => {
 };
 
 export const initRuntimeListeners = () => {
-  Promise.all([
+  return Promise.all([
     listen<SourceDto>('source:update', (event) => applySourceUpdate(event.payload)),
     listen<JobDto>('job:new', (event) => hydrateJob(fromJobDto(event.payload))),
     listen<JobDto>('job:update', (event) => applyJobUpdate(fromJobDto(event.payload))),
-  ]);
+  ]).then((disposers) => () => disposers.forEach((dispose) => dispose()));
 };
